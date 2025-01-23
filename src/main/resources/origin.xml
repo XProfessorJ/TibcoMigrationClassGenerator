@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<input
+>
+    <pd:activity>
+        <pd:type>com.tibco.plugin.cobol.CCBRenderActivity</pd:type>
+    </pd:activity>
+    <pd:inputBindings>
+        <Input>
+            <forceCharacterSet>
+                <xsl:value-of select="esbcustom:getCCBCCSID($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,'CARD')"/>
+            </forceCharacterSet>
+            <MLI-0087-REQ-RECORD>
+                <MLI-0087-REQ-MESG-ID>
+                    <xsl:value-of select="0087"/>
+                </MLI-0087-REQ-MESG-ID>
+                <MLI-0087-REQ-VER-NO>
+                    <xsl:value-of select="11"/>
+                </MLI-0087-REQ-VER-NO>
+                <MLI-0087-REQ-TERMID>
+                    <xsl:value-of
+                            select="concat(substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:TerminalID,1,8), substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,1,2))"/>
+                </MLI-0087-REQ-TERMID>
+                <MLI-0087-RE0-USER-ID>
+                    <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:UserID"/>
+                </MLI-0087-RE0-USER-ID>
+                <MLI-0087-REQ-DTE-TIME>
+                    <xsl:value-of select="if (esbparam:getDataForTwoKeys('isDateTimeConversionRequired',
+    $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID,
+    $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode) = 'Y') then
+    esbcustom:convertECSRequest('DT','DT',esbcustom:getCurrentDatetime($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode))
+    else esbcustom:convertECSRequest('DT','DT',$Start/root/pfx4:RqHeader/pfx4:DateAndTimeStamp)"/>
+                </MLI-0087-REQ-DTE-TIME>
+                <MLI-0087-REQ-ACTION-CD>
+                    <xsl:value-of select="if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo)) = 0) then
+                         '02'
+                         else
+                         '01'"/>
+                </MLI-0087-REQ-ACTION-CD>
+                <MLI-0087-REQ-ORG>
+                    <xsl:value-of select="$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BranchOrgCode"/>
+                </MLI-0087-REQ-ORG>
+                <MLI-0087-REQ-BKBR-NUMBER>
+                    <xsl:value-of select="if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex)) != 0) then
+      $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex
+    else if (exists($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) and
+             string-length($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) > 0) then
+      $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo
+    else
+      '0'"/>
+                </MLI-0087-REQ-BKBR-NUMBER>
+            </MLI-0087-REQ-RECORD>
+        </Input>
+    </pd:inputBindings>
+
+
+</input>
+
