@@ -39,6 +39,9 @@
                 <MLI-0087-REQ-ORG>
                     <xsl:value-of select="$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BranchOrgCode"/>
                 </MLI-0087-REQ-ORG>
+                <MLI-0087-REQ-ORG-INNER>
+                    <xsl:value-of select="$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:Country/pfx12:BranchOrgCode"/>
+                </MLI-0087-REQ-ORG-INNER>
                 <MLI-0087-REQ-BKBR-NUMBER>
                     <xsl:value-of select="if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex)) != 0) then
       $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex

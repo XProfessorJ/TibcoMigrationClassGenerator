@@ -11,13 +11,20 @@ import java.io.File;
 import java.util.*;
 
 public class XMLParser {
+    static Map<String, LinkedHashMap<String, String>> keyValueMap = new HashMap<>();
+
+    public static Map<String, LinkedHashMap<String, String>> getKeyValueMap() throws Exception {
+        String xmlFilePath = "src/main/resources/origin.xml";  // 替换为实际的 XML 文件路径
+        findCCBActivity(xmlFilePath);
+        return keyValueMap;
+    }
 
     public static void main(String[] args) throws Exception {
         String xmlFilePath = "src/main/resources/origin.xml";  // 替换为实际的 XML 文件路径
         findCCBActivity(xmlFilePath);
     }
 
-    private static void findCCBActivity(String xmlFilePath) throws Exception{
+    private static void findCCBActivity(String xmlFilePath) throws Exception {
         File xmlFile = new File(xmlFilePath);
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
@@ -47,6 +54,7 @@ public class XMLParser {
     private static void processInputBindings(Document document) {
         // 获取所有 <pd:inputBindings> 节点
         NodeList inputBindingNodes = document.getElementsByTagName("pd:inputBindings");
+        Map<String, LinkedHashMap<String, String>> keyValueMap = new HashMap<>();
 
         for (int i = 0; i < inputBindingNodes.getLength(); i++) {
             Node inputBindingNode = inputBindingNodes.item(i);
@@ -97,9 +105,10 @@ public class XMLParser {
     }
 
     // 找到 forceCharacterSet 后的邻接兄弟节点
-    private static void findNextSiblingAfterForceCharacterSet(Node node) {
+    private static Map<String, LinkedHashMap<String, String>> findNextSiblingAfterForceCharacterSet(Node node) {
         NodeList childNodes = node.getChildNodes();
         childNodes = removeEmptyTextNodes(childNodes);
+
 
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node currentNode = childNodes.item(i);
@@ -110,18 +119,24 @@ public class XMLParser {
                     Node nextSibling = childNodes.item(i + 1);
                     System.out.println("Found next sibling: " + nextSibling.getNodeName() + " with value: " + nextSibling.getTextContent());
                     // 进一步处理该节点（如生成映射规则）
-                    handleNode(nextSibling,nextSibling.getNodeName());
+                    LinkedHashMap<String, String> keyValues = handleNode(nextSibling);
+                    keyValueMap.put(nextSibling.getNodeName(), keyValues);
+                    System.out.println("Parent Node: " + nextSibling.getNodeName());
+                    for (Map.Entry<String, String> entry : keyValueMap.get(nextSibling.getNodeName()).entrySet()) {
+                        System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
+                    }
                 }
             }
         }
+        return keyValueMap;
     }
 
-    public static void handleNode(Node nextSibling,String parentNodeName) {
+    public static LinkedHashMap<String, String> handleNode(Node nextSibling) {
         // 递归遍历所有子节点，提取键值对
         if (nextSibling.hasChildNodes()) {
             NodeList childNodes = nextSibling.getChildNodes();
-            Map<String,LinkedHashMap<String,String>> keyValueMap =new HashMap<>();
-            LinkedHashMap<String,String> keyValues = new LinkedHashMap<>();
+//            Map<String, LinkedHashMap<String, String>> keyValueMap = new HashMap<>();
+            LinkedHashMap<String, String> keyValues = new LinkedHashMap<>();
 //            removeEmptyTextNodes(childNodes);
             // 遍历每个子节点并提取信息
             for (int i = 0; i < childNodes.getLength(); i++) {
@@ -139,14 +154,16 @@ public class XMLParser {
                 }
                 extractKeyValuePairs(childNode, keyValues);
             }
-            keyValueMap.put(parentNodeName,keyValues);
+//            keyValueMap.put(parentNodeName, keyValues);
 
 //             打印或处理生成的键值对
-            System.out.println("Parent Node: " + parentNodeName);
-            for (Map.Entry<String, String> entry : keyValueMap.get(parentNodeName).entrySet()) {
-                System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
-            }
+//            System.out.println("Parent Node: " + parentNodeName);
+//            for (Map.Entry<String, String> entry : keyValueMap.get(parentNodeName).entrySet()) {
+//                System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
+//            }
+            return keyValues;
         }
+        return null;
     }
 
     public static void extractKeyValuePairs(Node node, Map<String, String> keyValueMap) {
