@@ -1,5 +1,6 @@
 package com.example.tibcomigrationclassgenerator.controller;
 
+import com.example.tibcomigrationclassgenerator.model.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -7,10 +8,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +17,7 @@ public class MapperClassGenerator {
     private static final Logger log = LoggerFactory.getLogger(MapperClassGenerator.class);
 
     // 生成 Mapper 类的通用方法
-    public static void generateMapperFromHashMap(Map<String, LinkedHashMap<String, String>> keyValueMap, String className, String packageName) {
+    public static void generateMapperFromHashMap(Map<String, LinkedList<Tag>> keyValueMap, String className, String packageName) {
         StringBuilder classCode = new StringBuilder();
         String targetObjectIdentifier = getTargetObjectIdentifier(keyValueMap);
         // 添加包名
@@ -36,13 +34,13 @@ public class MapperClassGenerator {
                 .append("public abstract class ").append(className).append(" {\n\n");
 
         // 遍历 keyValueMap，生成映射方法
-        for (Map.Entry<String, LinkedHashMap<String, String>> entry : keyValueMap.entrySet()) {
-            LinkedHashMap<String, String> fields = entry.getValue();
+        for (Map.Entry<String, LinkedList<Tag>> entry : keyValueMap.entrySet()) {
+            LinkedList<Tag> fields = entry.getValue();
 
             // 遍历每个字段，按顺序生成 @Mapping 注解
-            for (Map.Entry<String, String> field : fields.entrySet()) {
-                String fieldName = field.getKey(); // 字段名
-                String fieldValue = field.getValue(); // 字段值
+            for (Tag tag: fields) {
+                String fieldName = tag.getTagName(); // 字段名
+                String fieldValue = tag.getInsideCondition(); // 字段值
 
                 // 生成简单字段的 @Mapping 注解
                 if (!isComplexValue(fieldValue)) {
@@ -69,12 +67,12 @@ public class MapperClassGenerator {
         classCode.append("\n    public abstract ").append(mapClassObjectReturn).append(" map(").append(targetObjectIdentifier).append(" source, @Context APIHeader apiHeader);\n");
 
         // 生成所有的 @Named 方法
-        for (Map.Entry<String, LinkedHashMap<String, String>> entry : keyValueMap.entrySet()) {
-            LinkedHashMap<String, String> fields = entry.getValue();
+        for (Map.Entry<String, LinkedList<Tag>> entry : keyValueMap.entrySet()) {
+            LinkedList<Tag> tagLinkedList = entry.getValue();
 
-            for (Map.Entry<String, String> field : fields.entrySet()) {
-                String fieldName = field.getKey(); // 字段名
-                String fieldValue = field.getValue(); // 字段值
+            for (Tag tag : tagLinkedList) {
+                String fieldName = tag.getTagName(); // 字段名
+                String fieldValue = tag.getCombileLogic()!=null ? tag.getCombileLogic(): tag.getInsideCondition();// 字段值
                 //Conver the fieldValue to the corresponding Java condition logic.
                 LogicConverter logicConverter = new LogicConverter();
                 String javaConditionLogic = logicConverter.convertLogic(fieldValue);
@@ -120,9 +118,10 @@ public class MapperClassGenerator {
     private static void generateNamedMethod(StringBuilder classCode, String methodName, String value, String javaConditionLogic, String targetObjectIdentifier) {
         classCode.append("\n    @Named(\"").append(methodName).append("\")\n")
                 .append("    public String ").append(methodName).append("(").append(targetObjectIdentifier).append(" source, @Context APIHeader apiHeader) {\n")
-                .append("        // Tibco Logic: ").append(value).append("\n")
+                .append("        // Tibco Logic: ").append(value.replaceAll("\n","\n//")).append("\n")
                 .append("        // Java Condition Logic: ").append("\n")
-                .append(javaConditionLogic).append("\n")
+                .append("        // javaConditionLogic has remaked, Will turn on this feature later").append("\n")
+//                .append(javaConditionLogic).append("\n")
 //                .append("        return null;\n")
                 .append("    }\n");
     }
@@ -211,13 +210,13 @@ public class MapperClassGenerator {
         }
     }
 
-    private static String getTargetObjectIdentifier(Map<String, LinkedHashMap<String, String>> keyValueMap) {
+    private static String getTargetObjectIdentifier(Map<String, LinkedList<Tag>> keyValueMap) {
         return TargetObjectIdentifier.findMostFrequentSourceType(keyValueMap);
     }
 
     public static void main(String[] args) throws Exception {
         // 示例的 keyValueMap
-        Map<String, LinkedHashMap<String, String>> keyValueMap = XMLParser.getKeyValueMap();
+        Map<String, LinkedList<Tag>> keyValueMap = XMLParser.getKeyValueMap();
 
         // 调用生成 Mapper 类的工具方法
         String className = "MLI_0087_Req_Record_Mapper_AutoGenerated";

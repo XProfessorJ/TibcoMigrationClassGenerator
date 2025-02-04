@@ -16,6 +16,15 @@ public class APIHeader {
         private String terminalID;  // 确保字段名是 terminalID
         private String userID;      // 确保字段名是 userID
         private String destCountryCode;
+        private String ChannelID;
+
+        public String getChannelID() {
+            return ChannelID;
+        }
+
+        public void setChannelID(String channelID) {
+            ChannelID = channelID;
+        }
 
         public String getDestCountryCode() {
             return destCountryCode;

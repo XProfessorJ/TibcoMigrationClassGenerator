@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<input
+>
+    <pd:activity>
+        <pd:type>com.tibco.plugin.cobol.CCBRenderActivity</pd:type>
+    </pd:activity>
+    <pd:inputBindings>
+        <Input>
+            <forceCharacterSet>
+                <xsl:value-of
+                        select="esbcustom:getCCBCCSID($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,'CARD')"/>
+            </forceCharacterSet>
+            <MLI-0087-REQ-RECORD>
+                <xsl:if test="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:TerminalID">
+                    <MLI-0087-REQ-TERMID>
+                        <xsl:value-of
+                                select="concat(substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:TerminalID,1,8), substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,1,2))"/>
+                    </MLI-0087-REQ-TERMID>
+                </xsl:if>
+                <xsl:choose>
+                    <xsl:when test="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID = 'CITI'">
+                        <MLI-0087-REQ-ORG>
+                            <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode"/>
+                        </MLI-0087-REQ-ORG>
+                        <xsl:if test="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode = '3'">
+                            <MLI-0087-REQ-ORG-INNER>
+                                <xsl:value-of select="78"/>
+                            </MLI-0087-REQ-ORG-INNER>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:when test="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID = 'SG'">
+                        <MLI-0087-REQ-ORG>
+                            <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode"/>
+                        </MLI-0087-REQ-ORG>
+                        <xsl:if test="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode = '5'">
+                            <MLI-0087-REQ-ORG-INNER>
+                                <xsl:value-of select="998"/>
+                            </MLI-0087-REQ-ORG-INNER>
+                        </xsl:if>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <MLI-0087-REQ-ORG>
+                            <xsl:value-of select="0"/>
+                        </MLI-0087-REQ-ORG>
+                    </xsl:otherwise>
+                </xsl:choose>
+                <MLI-0087-RE0-USER-ID>
+                    <xsl:value-of select="$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BranchOrgCode"/>
+                </MLI-0087-RE0-USER-ID>
+            </MLI-0087-REQ-RECORD>
+        </Input>
+    </pd:inputBindings>
+
+
+</input>
+

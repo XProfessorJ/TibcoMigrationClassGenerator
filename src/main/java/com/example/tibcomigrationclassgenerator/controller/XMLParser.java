@@ -1,5 +1,6 @@
 package com.example.tibcomigrationclassgenerator.controller;
 
+import com.example.tibcomigrationclassgenerator.model.Tag;
 import org.w3c.dom.Document;
 import org.w3c.dom.DocumentFragment;
 import org.w3c.dom.Node;
@@ -11,16 +12,16 @@ import java.io.File;
 import java.util.*;
 
 public class XMLParser {
-    static Map<String, LinkedHashMap<String, String>> keyValueMap = new HashMap<>();
+    static Map<String, LinkedList<Tag>> keyValueMap = new HashMap<>();
 
-    public static Map<String, LinkedHashMap<String, String>> getKeyValueMap() throws Exception {
-        String xmlFilePath = "src/main/resources/origin.xml";  // 替换为实际的 XML 文件路径
+    public static Map<String, LinkedList<Tag>> getKeyValueMap() throws Exception {
+        String xmlFilePath = "src/main/resources/condition.xml";  // 替换为实际的 XML 文件路径
         findCCBActivity(xmlFilePath);
         return keyValueMap;
     }
 
     public static void main(String[] args) throws Exception {
-        String xmlFilePath = "src/main/resources/origin.xml";  // 替换为实际的 XML 文件路径
+        String xmlFilePath = "src/main/resources/condition.xml";  // 替换为实际的 XML 文件路径
         findCCBActivity(xmlFilePath);
     }
 
@@ -105,7 +106,7 @@ public class XMLParser {
     }
 
     // 找到 forceCharacterSet 后的邻接兄弟节点
-    private static Map<String, LinkedHashMap<String, String>> findNextSiblingAfterForceCharacterSet(Node node) {
+    private static Map<String, LinkedList<Tag>> findNextSiblingAfterForceCharacterSet(Node node) {
         NodeList childNodes = node.getChildNodes();
         childNodes = removeEmptyTextNodes(childNodes);
 
@@ -119,24 +120,65 @@ public class XMLParser {
                     Node nextSibling = childNodes.item(i + 1);
                     System.out.println("Found next sibling: " + nextSibling.getNodeName() + " with value: " + nextSibling.getTextContent());
                     // 进一步处理该节点（如生成映射规则）
-                    LinkedHashMap<String, String> keyValues = handleNode(nextSibling);
+                    LinkedList<Tag> keyValues = handleNode(nextSibling);
+                    keyValues = combineSameTags(keyValues);
+
                     keyValueMap.put(nextSibling.getNodeName(), keyValues);
-                    System.out.println("Parent Node: " + nextSibling.getNodeName());
-                    for (Map.Entry<String, String> entry : keyValueMap.get(nextSibling.getNodeName()).entrySet()) {
-                        System.out.println("Key: " + entry.getKey() + ", Value: " + entry.getValue());
-                    }
+//                    System.out.println("Parent Node: " + nextSibling.getNodeName());
+//                    for (Tag tag : keyValues) {
+//                        System.out.println("Tag: " + tag.getTagName() + ", Inside Condition: " + tag.getInsideCondition());
+//                    }
                 }
             }
         }
+
         return keyValueMap;
     }
 
-    public static LinkedHashMap<String, String> handleNode(Node nextSibling) {
+    public static LinkedList<Tag> combineSameTags(LinkedList<Tag> tags) {
+        LinkedList<Tag> combinedTags = new LinkedList<>();
+        for (Tag tag : tags) {
+            boolean found = false;
+            StringBuilder combineCondition = new StringBuilder();
+            if (tag.isIfWhenCondition()) {
+                if (tag.getWhenCondition() != null) {
+                    combineCondition.append("       if(" + tag.getWhenCondition() + ")" + "{\n");
+                } else {
+                    combineCondition.append("       else{\n");
+                }
+                if (tag.getOutsideTag() != null) {
+                    combineCondition.append("       if(" + tag.getOutsideCondition() + ")" + "{\n");
+                    combineCondition.append("       "+tag.getInsideCondition() + "\n      }\n     }\n");
+                } else {
+                    combineCondition.append("       "+tag.getInsideCondition() + "\n      }\n");
+                }
+
+                tag.setCombileLogic(combineCondition.toString());
+            }
+
+            for (Tag combinedTag : combinedTags) {
+                if (tag.getTagName().equals(combinedTag.getTagName()) && tag.isIfWhenCondition()) {
+                    found = true;
+                    combinedTag.setCombileLogic(combinedTag.getCombileLogic() != null
+                            ? combinedTag.getCombileLogic() + combineCondition.toString()
+                            : combineCondition.toString());
+                    break;
+                }
+            }
+            if (!found) {
+                combinedTags.add(tag);
+            }
+        }
+        return combinedTags;
+    }
+
+    public static LinkedList<Tag> handleNode(Node nextSibling) {
         // 递归遍历所有子节点，提取键值对
         if (nextSibling.hasChildNodes()) {
             NodeList childNodes = nextSibling.getChildNodes();
 //            Map<String, LinkedHashMap<String, String>> keyValueMap = new HashMap<>();
-            LinkedHashMap<String, String> keyValues = new LinkedHashMap<>();
+            LinkedList<Tag> keyValues = new LinkedList<>();
+
 //            removeEmptyTextNodes(childNodes);
             // 遍历每个子节点并提取信息
             for (int i = 0; i < childNodes.getLength(); i++) {
@@ -152,7 +194,19 @@ public class XMLParser {
                 if (childNode != null && childNode.getNodeType() == Node.TEXT_NODE && childNode.getTextContent().trim().isEmpty()) {
                     continue;
                 }
-                extractKeyValuePairs(childNode, keyValues);
+                switch (childNode.getNodeName()) {
+                    case "xsl:if":
+                        String tagName = childNode.getNodeName();
+                        String ifCondition = childNode.getAttributes().getNamedItem("test").getTextContent();
+                        extractKeyValuePairs(childNode.getChildNodes().item(1), keyValues, tagName, ifCondition);
+                        break;
+                    case "xsl:choose":
+                        extractChooseWhenKeyValuePairs(childNode.getChildNodes(), keyValues);
+                        break;
+                    default:
+                        extractKeyValuePairs(childNode, keyValues);
+                        break;
+                }
             }
 //            keyValueMap.put(parentNodeName, keyValues);
 
@@ -166,14 +220,56 @@ public class XMLParser {
         return null;
     }
 
-    public static void extractKeyValuePairs(Node node, Map<String, String> keyValueMap) {
+    public static void extractKeyValuePairs(Node node, LinkedList<Tag> keyValueMap) {
         // 处理该节点下的所有子节点
         String parentNodeName = node.getNodeName().toLowerCase();
         Node firstChild = node.getChildNodes().item(1);
+
         if (firstChild.getNodeName().equals("xsl:value-of")) {
             String selectValue = firstChild.getAttributes().getNamedItem("select").getTextContent();
             // 将父节点的名称和 select 的值作为键值对
-            keyValueMap.put(parentNodeName, selectValue);
+//            keyValueMap.put(parentNodeName, selectValue);
+
+            Tag tag = new Tag();
+            tag.setTagName(parentNodeName);
+            tag.setInsideCondition(selectValue);
+            keyValueMap.add(tag);
+        }
+    }
+
+    public static void extractKeyValuePairs(Node node, LinkedList keyValueMap, String outsideTag, String outsideCondition) {
+        // 处理该节点下的所有子节点
+        String parentNodeName = node.getNodeName().toLowerCase();
+        Node firstChild = node.getChildNodes().item(1);
+
+        if (firstChild.getNodeName().equals("xsl:value-of")) {
+            String selectValue = firstChild.getAttributes().getNamedItem("select").getTextContent();
+            // 将父节点的名称和 select 的值作为键值对
+//            keyValueMap.put(parentNodeName, selectValue);
+
+            Tag tag = new Tag();
+            tag.setTagName(parentNodeName);
+            tag.setInsideCondition(selectValue);
+            tag.setOutsideTag(outsideTag);
+            tag.setOutsideCondition(outsideCondition);
+            keyValueMap.add(tag);
+        }
+    }
+
+    public static void extractChooseWhenKeyValuePairs(NodeList nodeList, LinkedList<Tag> keyValueMap) {
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            if (node.getNodeName().equals("xsl:when") || node.getNodeName().equals("xsl:otherwise")) {
+                LinkedList<Tag> newKeyValueMap = handleNode(node);
+                newKeyValueMap.forEach(tag -> {
+                    tag.setIfWhenCondition(true);
+                    if (node.getAttributes().getNamedItem("test") != null) {
+                        tag.setWhenCondition(node.getAttributes().getNamedItem("test").getTextContent());
+                    }
+                });
+                keyValueMap.addAll(newKeyValueMap);
+//                System.out.println(newKeyValueMap);
+            }
         }
     }
 }

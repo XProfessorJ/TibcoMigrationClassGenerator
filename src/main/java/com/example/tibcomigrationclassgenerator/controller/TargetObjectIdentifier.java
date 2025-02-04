@@ -1,23 +1,25 @@
 package com.example.tibcomigrationclassgenerator.controller;
 
 
+import com.example.tibcomigrationclassgenerator.model.Tag;
+
 import java.util.*;
 import java.util.regex.*;
 
 public class TargetObjectIdentifier {
 
     // 主要方法：找到频率最高的 SourceType
-    public static String findMostFrequentSourceType(Map<String, LinkedHashMap<String, String>> keyValueMap) {
+    public static String findMostFrequentSourceType(Map<String, LinkedList<Tag>> keyValueMap) {
         // 存储每个复杂字段值中倒数第二个 pfx12 后面出现的对象及其频率
         Map<String, Integer> frequencyMap = new HashMap<>();
 
         // 遍历所有复杂字段
-        for (Map.Entry<String, LinkedHashMap<String, String>> entry : keyValueMap.entrySet()) {
-            for (Map.Entry<String, String> subEntry : entry.getValue().entrySet()) {
-                String value = subEntry.getValue();
+        for (Map.Entry<String, LinkedList<Tag>> entry : keyValueMap.entrySet()) {
+            for (Tag tag : entry.getValue()) {
+                String value = tag.getInsideCondition();
 
                 // 打印所有字段值，方便调试
-                System.out.println("Checking field: " + subEntry.getKey() + ", value: " + value);
+                System.out.println("Checking field: " + tag.getTagName() + ", value: " + value);
 
                 // 只处理复杂字段
                 if (isComplexValue(value)) {
@@ -75,18 +77,21 @@ public class TargetObjectIdentifier {
     // 测试主方法
     public static void main(String[] args) {
         // 示例输入数据
-        Map<String, LinkedHashMap<String, String>> keyValueMap = Map.of(
-                "MLI-0087-REQ-RECORD", new LinkedHashMap<>() {{
-                    put("mli-0087-req-mesg-id", "0087");
-                    put("mli-0087-req-ver-no", "11");
-                    put("mli-0087-req-termid", "concat(substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:TerminalID,1,8), substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,1,2))");
-                    put("mli-0087-re0-user-id", "$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:UserID");
-                    put("mli-0087-req-dte-time", "if (esbparam:getDataForTwoKeys('isDateTimeConversionRequired', $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID, $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode) = 'Y') then esbcustom:convertECSRequest('DT','DT',esbcustom:getCurrentDatetime($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode)) else esbcustom:convertECSRequest('DT','DT',$Start/root/pfx4:RqHeader/pfx4:DateAndTimeStamp)");
-                    put("mli-0087-req-action-cd", "if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo)) = 0) then '02' else '01'");
-                    put("mli-0087-req-org", "$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BranchOrgCode");
-                    put("mli-0087-req-bkbr-number", "if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex)) != 0) then $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex else if (exists($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) and string-length($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) > 0) then $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo else '0'");
-                }}
-        );
+        Map<String, LinkedList<Tag>> keyValueMap = new HashMap<>();
+
+        // 初始化 LinkedList<Tag> 并填充数据
+        LinkedList<Tag> tagList = new LinkedList<>();
+        tagList.add(new Tag("mli-0087-req-mesg-id", "", "0087"));
+        tagList.add(new Tag("mli-0087-req-ver-no","",  "11"));
+        tagList.add(new Tag("mli-0087-req-termid","",  "concat(substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:TerminalID,1,8), substring($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,1,2))"));
+        tagList.add(new Tag("mli-0087-re0-user-id","",  "$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:UserID"));
+        tagList.add(new Tag("mli-0087-req-dte-time","",  "if (esbparam:getDataForTwoKeys('isDateTimeConversionRequired', $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID, $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode) = 'Y') then esbcustom:convertECSRequest('DT','DT',esbcustom:getCurrentDatetime($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode)) else esbcustom:convertECSRequest('DT','DT',$Start/root/pfx4:RqHeader/pfx4:DateAndTimeStamp)"));
+        tagList.add(new Tag("mli-0087-req-action-cd","",  "if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo)) = 0) then '02' else '01'"));
+        tagList.add(new Tag("mli-0087-req-org","",  "$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BranchOrgCode"));
+        tagList.add(new Tag("mli-0087-req-bkbr-number","",  "if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex)) != 0) then $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex else if (exists($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) and string-length($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) > 0) then $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo else '0'"));
+
+        // 将 LinkedList<Tag> 放入 Map
+        keyValueMap.put("MLI-0087-REQ-RECORD", tagList);
 
         // 找到频率最高的 SourceType
         String sourceType = findMostFrequentSourceType(keyValueMap);

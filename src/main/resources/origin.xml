@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <input
->
+        xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <pd:activity>
         <pd:type>com.tibco.plugin.cobol.CCBRenderActivity</pd:type>
     </pd:activity>
     <pd:inputBindings>
         <Input>
             <forceCharacterSet>
-                <xsl:value-of select="esbcustom:getCCBCCSID($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,'CARD')"/>
+                <xsl:value-of
+                        select="esbcustom:getCCBCCSID($Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:DestCountryCode,'CARD')"/>
             </forceCharacterSet>
             <MLI-0087-REQ-RECORD>
                 <MLI-0087-REQ-MESG-ID>
@@ -23,6 +24,12 @@
                 <MLI-0087-RE0-USER-ID>
                     <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:UserID"/>
                 </MLI-0087-RE0-USER-ID>
+                <MLI-0087-REQ-ORG>
+                    <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode"/>
+                </MLI-0087-REQ-ORG>
+                <MLI-0087-REQ-ORG>
+                    <xsl:value-of select="$Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:OrgCode"/>
+                </MLI-0087-REQ-ORG>
                 <MLI-0087-REQ-DTE-TIME>
                     <xsl:value-of select="if (esbparam:getDataForTwoKeys('isDateTimeConversionRequired',
     $Start/root/pfx4:RqHeader/pfx4:ClientDetails/pfx4:ChannelID,
@@ -42,15 +49,6 @@
                 <MLI-0087-REQ-ORG-INNER>
                     <xsl:value-of select="$Start/root/pfx12:ListOfBankBranchInqRq/pfx12:Country/pfx12:BranchOrgCode"/>
                 </MLI-0087-REQ-ORG-INNER>
-                <MLI-0087-REQ-BKBR-NUMBER>
-                    <xsl:value-of select="if (string-length(tib:trim($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex)) != 0) then
-      $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:ListRq/StartIndex
-    else if (exists($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) and
-             string-length($Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo) > 0) then
-      $Start/root/pfx12:ListOfBankBranchInqRq/pfx12:BankBranchNo
-    else
-      '0'"/>
-                </MLI-0087-REQ-BKBR-NUMBER>
             </MLI-0087-REQ-RECORD>
         </Input>
     </pd:inputBindings>
